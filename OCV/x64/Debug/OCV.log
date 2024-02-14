@@ -1,0 +1,24 @@
+﻿  Arr-img.cpp
+C:\OCV\OCV\Arr-img.cpp(86,11): warning C4101: in_cl: неиспользованная локальная переменная
+C:\OCV\OCV\Arr-img.cpp(319,46): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(327,46): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(337,46): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(345,46): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(355,46): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(363,46): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(373,46): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(381,46): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(746,81): warning C4244: =: преобразование "float" в "_Tp", возможна потеря данных
+          with
+          [
+              _Tp=uint8_t
+          ]
+C:\OCV\OCV\Arr-img.cpp(817,44): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(825,44): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(835,44): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(843,44): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(853,44): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(861,44): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(871,44): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+C:\OCV\OCV\Arr-img.cpp(879,44): warning C4244: =: преобразование "int" в "float", возможна потеря данных
+  OCV.vcxproj -> C:\OCV\OCV\x64\Debug\OCV.exe
