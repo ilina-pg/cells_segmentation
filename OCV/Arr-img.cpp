@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <iostream>
+#include <iterator>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/utility.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -28,7 +29,7 @@ const char ANG0 = '-';
 const char ANG45 = '/';
 const char ANG90 = '|';
 const char ANG135 = '\\';
-string name = "sharp_cells.jpg";
+string name = "cells.jpg";
 string path = "C:/OCV/IMG/";
 
 void adv_spread(int** clusters, int** R_img, int height, int width, int max_col);
@@ -48,6 +49,98 @@ Mat mult_R(Mat img1, Mat img2);
 int*** process_center(int** R_img, int*** buf, int i_c, int j_c, char dir);
 void process_clust(int** clusters, int** R_img, int top, int left, int right, int bot, int col, int height, int width);
 int** spread(int** img, int height, int width);
+
+class Coord {
+private:
+    int i, j;
+public:
+    Coord(int i_n, int j_n) {
+        i = i_n;
+        j = j_n;
+    }
+    int get_i() {
+        return i;
+    }
+    int get_j() {
+        return j;
+    }
+    void operator =(const Coord& C)
+    {
+        i = C.i;
+        j = C.j;
+    }
+};
+class Pixel {
+private:
+    int b;
+    Coord ij = Coord(0,0);
+public:
+    Pixel(int i_n, int j_n, int b_n) {
+        ij = Coord(i_n, j_n);
+        b = b_n;
+    }
+    Pixel(Coord ij_n, int b_n) {
+        ij = ij_n;
+        b = b_n;
+    }
+    Coord coord() {
+        return ij;
+    }
+    int br() {
+        return b;
+    }
+};
+
+class Cluster {
+private:
+    vector<Pixel> pixels;
+    int N, color;
+    float B, sigma;
+public:
+    Cluster(int col) {
+        N = 0;
+        color = col;
+        B = 0;
+        sigma = 0;
+    }
+    void add_pix(Pixel pix) {
+        pixels.push_back(pix);
+        B *= N;
+        B += pix.br();
+        N++;
+        B /= N;
+        sigma = new_sigma();
+    }
+    float get_B() {
+        return B;
+    }
+    int get_N() {
+        return N;
+    }
+    vector<Pixel> get_pixels() {
+        return pixels;
+    }
+    float get_sigma() {
+        return sigma;
+    }
+    float new_sigma(){
+        sigma = 0;
+        for (int i = 0; i < pixels.size(); i++) {
+            sigma += pixels[i].br();
+        }
+        sigma /= N;
+        sigma = sqrt(sigma);
+        return sigma;
+    }
+    void merge(Cluster cl) {
+        int t_N = cl.get_N();
+        pixels.insert(pixels.end(), cl.pixels.begin(), cl.pixels.end());
+        B = (B * N + cl.get_B() * t_N) / (N + t_N);
+        N += t_N;
+        sigma = new_sigma();
+        cl.color = 0;
+    }
+};
 
 int main(int argc, char** argv) //C:\OCV\OCV\x64\Debug\OCV.exe
 {
@@ -116,6 +209,8 @@ int main(int argc, char** argv) //C:\OCV\OCV\x64\Debug\OCV.exe
     spread(clusters, height, width);
     imshow("clusters", arr_to_3ch_mat(gray_sys, clusters));
     imwrite(path + "cl_new_" + name, arr_to_3ch_mat(R_mult, clusters));
+
+
     waitKey(0);
     for (int i = 0; i < height; i++) {
         delete[width]border_dir_mat[i];
@@ -586,6 +681,19 @@ void get_B_sigma(int** clusters, int** R_img, float* B, float* sigma, int top, i
     }
 }
 
+vector<Cluster> get_clusters(int** clusters, int height, int width) {
+    vector<Cluster> cl_vec;
+    int col_ctr = 1;
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (clusters[i][j] != 0) {
+                cl_vec.push_back(recolor(clusters, i, j, col_ctr, height, width));
+                col_ctr++;
+            }
+        }
+    }
+    return cl_vec;
+}
 float get_R(Mat img, char& border_dir, int frame_size) {
     float B_1 = 0, B_2 = 0;
     float s_1 = 0, s_2 = 0;
@@ -1034,6 +1142,111 @@ void process_clust(int** clusters, int** R_img, int top, int left, int right, in
     }
     fill_holes(clusters, top, bot, left, right, col, height, width);
     //cout << "proc_clust\n";
+}
+
+Cluster recolor(int** clusters, int i, int j, int col, int height, int width){
+    Cluster cl = Cluster(col);
+    int col_init = clusters[i][j];
+    Coord ij = Coord(i, j);
+    vector <Coord> to_color_r;
+    vector <Coord> to_color_l;
+    vector <Coord> to_color_u;
+    vector <Coord> to_color_d;
+    bool start = TRUE;
+    to_color_r.push_back(ij);
+    to_color_l.push_back(ij);
+    to_color_u.push_back(ij);
+    to_color_d.push_back(ij);
+    while (start || to_color_r.size() || to_color_l.size() || to_color_u.size() || to_color_d.size()) {
+        while (to_color_r.size()) {
+            ij = to_color_r[to_color_r.size() - 1];
+            to_color_r.pop_back();
+            i = ij.get_i();
+            j = ij.get_j();
+            if (clusters[i][j] == col_init) {
+                clusters[i][j] = col;
+                if (i > 0 && clusters[i - 1][j] == col_init) {
+                    to_color_u.push_back(Coord(i - 1, j));
+                }
+                if (j > 0 && clusters[i][j - 1] == col_init) {
+                    to_color_l.push_back(Coord(i, j - 1));
+                }
+                if (i < height - 1 && clusters[i + 1][j] == col_init) {
+                    to_color_d.push_back(Coord(i + 1, j));
+                }
+                if (j < width - 1 && clusters[i][j + 1] == col_init) {
+                    to_color_r.push_back(Coord(i, j + 1));
+                }
+                cl.add_pix(Pixel(ij, clusters[i][j]));
+            }
+        }
+        while (to_color_l.size()) {
+            ij = to_color_l[to_color_l.size() - 1];
+            to_color_l.pop_back();
+            i = ij.get_i();
+            j = ij.get_j();
+            if (clusters[i][j] == col_init) {
+                clusters[i][j] = col;
+                if (i > 0 && clusters[i - 1][j] == col_init) {
+                    to_color_u.push_back(Coord(i - 1, j));
+                }
+                if (j > 0 && clusters[i][j - 1] == col_init) {
+                    to_color_l.push_back(Coord(i, j - 1));
+                }
+                if (i < height - 1 && clusters[i + 1][j] == col_init) {
+                    to_color_d.push_back(Coord(i + 1, j));
+                }
+                if (j < width - 1 && clusters[i][j + 1] == col_init) {
+                    to_color_r.push_back(Coord(i, j + 1));
+                }
+                cl.add_pix(Pixel(ij, clusters[i][j]));
+            }
+        }
+        while (to_color_u.size()) {
+            ij = to_color_u[to_color_u.size() - 1];
+            to_color_u.pop_back();
+            i = ij.get_i();
+            j = ij.get_j();
+            if (clusters[i][j] == col_init) {
+                clusters[i][j] = col;
+                if (i > 0 && clusters[i - 1][j] == col_init) {
+                    to_color_u.push_back(Coord(i - 1, j));
+                }
+                if (j > 0 && clusters[i][j - 1] == col_init) {
+                    to_color_l.push_back(Coord(i, j - 1));
+                }
+                if (i < height - 1 && clusters[i + 1][j] == col_init) {
+                    to_color_d.push_back(Coord(i + 1, j));
+                }
+                if (j < width - 1 && clusters[i][j + 1] == col_init) {
+                    to_color_r.push_back(Coord(i, j + 1));
+                }
+                cl.add_pix(Pixel(ij, clusters[i][j]));
+            }
+        }
+        while (to_color_d.size()) {
+            ij = to_color_d[to_color_d.size() - 1];
+            to_color_d.pop_back();
+            i = ij.get_i();
+            j = ij.get_j();
+            if (clusters[i][j] == col_init) {
+                clusters[i][j] = col;
+                if (i > 0 && clusters[i - 1][j] == col_init) {
+                    to_color_u.push_back(Coord(i - 1, j));
+                }
+                if (j > 0 && clusters[i][j - 1] == col_init) {
+                    to_color_l.push_back(Coord(i, j - 1));
+                }
+                if (i < height - 1 && clusters[i + 1][j] == col_init) {
+                    to_color_d.push_back(Coord(i + 1, j));
+                }
+                if (j < width - 1 && clusters[i][j + 1] == col_init) {
+                    to_color_r.push_back(Coord(i, j + 1));
+                }
+                cl.add_pix(Pixel(ij, clusters[i][j]));
+            }
+        }
+    }
 }
 
 int** spread(int** img, int height, int width){
